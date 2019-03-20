@@ -2268,6 +2268,10 @@ bool CBlock::AcceptBlock()
     if (pindexPrev->nHeight > 1000 && nMedianTimePast  + nMaxOffset < GetBlockTime())
         return error("AcceptBlock() : block's timestamp is too far in the future");
 
+    // Check timestamp
+    if (GetBlockTime() > FutureDrift(GetAdjustedTime()) && nHeight > 270000)
+         return error("AcceptBlock() : block timestamp too far in the future");
+         
     // Check that all transactions are finalized
     BOOST_FOREACH(const CTransaction& tx, vtx)
         if (!tx.IsFinal(nHeight, GetBlockTime()))
@@ -3308,7 +3312,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                 printf("  got inventory: %s  %s\n", inv.ToString().c_str(), fAlreadyHave ? "have" : "new");
 
             if (!fAlreadyHave)
-                pfrom->AskFor(inv, IsInitialBlockDownload()); // immediate retry during initial download
+                pfrom->AskFor(inv); //, IsInitialBlockDownload()); // immediate retry during initial download
             else if (inv.type == MSG_BLOCK && mapOrphanBlocks.count(inv.hash)) {
                 pfrom->PushGetBlocks(pindexBest, GetOrphanRoot(mapOrphanBlocks[inv.hash]));
             } else if (nInv == nLastBlock) {
